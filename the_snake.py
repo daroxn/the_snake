@@ -144,22 +144,18 @@ class Snake(GameObject):
         positions (list): Список координат всех сегментов змейки
         direction (tuple): Текущее направление движения
         next_direction (tuple): Следующее направление движения
-        body_color (tuple): Цвет змейки (зеленый по умолчанию)
         last (tuple): Координаты последнего удаленного сегмента
     """
 
+    length: int
+    positions: List[Tuple[int, int]]
+    direction: Tuple[int, int]
+    next_direction: Optional[Tuple[int, int]]
+    last: List[Tuple[int, int]]
+
     def __init__(self, body_color: Tuple[int, int, int] = SNAKE_COLOR) -> None:
         super().__init__(body_color)
-        self.length: int
-        self.positions: List[Tuple[int, int]]
-        self.direction: Tuple[int, int]
-        self.next_direction: Optional[Tuple[int, int]]
-        self.last: List[Tuple[int, int]]
         self.reset()
-        self.positions = [CENTER_POSITION]
-        self.direction = RIGHT
-        self.next_direction = None
-        self.last = []
 
     def update_direction(self) -> None:
         """Обновляет направление движения змейки."""
@@ -200,13 +196,12 @@ class Snake(GameObject):
         pygame.draw.rect(screen, self.body_color, head_rect)
         pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
 
-        if self.last:
-            for pos in self.last:
-                pygame.draw.rect(
-                    screen,
-                    BOARD_BACKGROUND_COLOR,
-                    pygame.Rect(pos, (GRID_SIZE, GRID_SIZE))
-                )
+        for position in self.last:
+            pygame.draw.rect(
+                screen,
+                BOARD_BACKGROUND_COLOR,
+                pygame.Rect(position, (GRID_SIZE, GRID_SIZE))
+            )
 
     def change_length(self, delta: int) -> None:
         """Изменяет длину змейки на указанное значение."""
@@ -227,7 +222,7 @@ class Snake(GameObject):
         """Возвращает позицию головы змейки"""
         return self.positions[0]
 
-    def get_collision(self, obj: Optional['GameObject'] = None) -> bool:
+    def check_collision(self, obj: Optional['GameObject'] = None) -> bool:
         """Проверяет столкновение змейки с объектом или самой собой."""
         if obj:
             return self.get_head_position() == obj.position
@@ -243,7 +238,7 @@ class Rock(GameObject):
     Появляется в случайных позициях на игровом поле
 
     Attributes:
-        body_color (tuple): Цвет яблока (красный по умолчанию)
+        body_color (tuple): Цвет камня (серый по умолчанию)
     """
 
     def __init__(
@@ -298,9 +293,11 @@ def handle_keys(game_object: 'Snake') -> None:
             raise SystemExit
 
         if event.type == pygame.KEYDOWN:
-            new_direction = DIRECTIONS.get((event.key, game_object.direction))
-            if new_direction is not None:
-                game_object.next_direction = new_direction
+            new_direction = DIRECTIONS.get(
+                (event.key, game_object.direction),
+                game_object.direction,
+            )
+            game_object.next_direction = new_direction
 
 
 def main() -> None:
@@ -321,14 +318,14 @@ def main() -> None:
         snake.update_direction()
         snake.move()
 
-        if snake.get_collision(apple):
+        if snake.check_collision(apple):
             snake.change_length(1)
             apple.randomize_position(snake.positions)
 
-        if snake.get_collision(poison):
+        if snake.check_collision(poison):
             snake.change_length(-1)
 
-        if snake.get_collision() or snake.get_collision(rock):
+        if snake.check_collision() or snake.check_collision(rock):
             screen.fill(BOARD_BACKGROUND_COLOR)
             snake.reset()
             apple.randomize_position(snake.positions)
