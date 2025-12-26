@@ -1,5 +1,5 @@
 from random import randint
-from typing import Tuple, List, Optional, Dict
+from typing import Dict, List, Optional, Tuple
 
 import pygame
 
@@ -143,6 +143,7 @@ class Snake(GameObject):
         length (int): Текущая длина змейки
         positions (list): Список координат всех сегментов змейки
         direction (tuple): Текущее направление движения
+        next_direction (tuple): Следующее направление движения
         body_color (tuple): Цвет змейки (зеленый по умолчанию)
         last (tuple): Координаты последнего удаленного сегмента
     """
@@ -152,22 +153,19 @@ class Snake(GameObject):
         self.length: int
         self.positions: List[Tuple[int, int]]
         self.direction: Tuple[int, int]
+        self.next_direction: Optional[Tuple[int, int]]
         self.last: List[Tuple[int, int]]
         self.reset()
         self.positions = [CENTER_POSITION]
         self.direction = RIGHT
+        self.next_direction = None
         self.last = []
 
-    def update_direction(
-            self,
-            new_direction: Optional[Tuple[int, int]] = None
-    ) -> None:
-        """Обновляет направление движения змейки.
-
-        Принимает новое направление и применяет его, если оно допустимо.
-        """
-        if new_direction:
-            self.direction = new_direction
+    def update_direction(self) -> None:
+        """Обновляет направление движения змейки."""
+        if self.next_direction:
+            self.direction = self.next_direction
+            self.next_direction = None
 
     def move(self) -> None:
         """Перемещает змейку в текущем направлении.
@@ -193,15 +191,13 @@ class Snake(GameObject):
         """
         for position in self.positions[:-1]:
             rect = (pygame.Rect(position, (GRID_SIZE, GRID_SIZE)))
-            if self.body_color is not None:
-                pygame.draw.rect(screen, self.body_color, rect)
+            pygame.draw.rect(screen, self.body_color, rect)
             pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
         head_rect = pygame.Rect(
             self.get_head_position(), (GRID_SIZE, GRID_SIZE)
         )
-        if self.body_color is not None:
-            pygame.draw.rect(screen, self.body_color, head_rect)
+        pygame.draw.rect(screen, self.body_color, head_rect)
         pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
 
         if self.last:
@@ -225,6 +221,7 @@ class Snake(GameObject):
             randint(0, GRID_HEIGHT - 1) * GRID_SIZE,
         )]
         self.direction = RIGHT
+        self.next_direction = None
 
     def get_head_position(self) -> Tuple[int, int]:
         """Возвращает позицию головы змейки"""
@@ -289,12 +286,11 @@ class Poison(GameObject):
             (x, y + GRID_SIZE),
             (x + GRID_SIZE, y + GRID_SIZE)
         ]
-        if self.body_color is not None:
-            pygame.draw.polygon(screen, self.body_color, points)
+        pygame.draw.polygon(screen, self.body_color, points)
         pygame.draw.polygon(screen, BORDER_COLOR, points, 1)
 
 
-def handle_keys(game_object: 'Snake') -> Optional[Tuple[int, int]]:
+def handle_keys(game_object: 'Snake') -> None:
     """Функция обработки действий пользователя"""
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -304,8 +300,7 @@ def handle_keys(game_object: 'Snake') -> Optional[Tuple[int, int]]:
         if event.type == pygame.KEYDOWN:
             new_direction = DIRECTIONS.get((event.key, game_object.direction))
             if new_direction is not None:
-                return new_direction
-    return None
+                game_object.next_direction = new_direction
 
 
 def main() -> None:
@@ -322,10 +317,8 @@ def main() -> None:
     while True:
         clock.tick(SPEED)
 
-        new_direction = handle_keys(snake)
-        if new_direction is not None:
-            snake.update_direction(new_direction)
-
+        handle_keys(snake)
+        snake.update_direction()
         snake.move()
 
         if snake.get_collision(apple):
