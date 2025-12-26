@@ -1,39 +1,61 @@
 from random import randint
+from typing import Tuple, List, Optional, Dict
 
 import pygame
 
 # Константы для размеров поля и сетки:
-SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
-GRID_SIZE = 20
-GRID_WIDTH = SCREEN_WIDTH // GRID_SIZE
-GRID_HEIGHT = SCREEN_HEIGHT // GRID_SIZE
+SCREEN_WIDTH: int = 640
+SCREEN_HEIGHT: int = 480
+GRID_SIZE: int = 20
+GRID_WIDTH: int = SCREEN_WIDTH // GRID_SIZE
+GRID_HEIGHT: int = SCREEN_HEIGHT // GRID_SIZE
+CENTER_POSITION: Tuple[int, int] = ((SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2))
 
 # Направления движения:
-UP = (0, -1)
-DOWN = (0, 1)
-LEFT = (-1, 0)
-RIGHT = (1, 0)
+UP: Tuple[int, int] = (0, -1)
+DOWN: Tuple[int, int] = (0, 1)
+LEFT: Tuple[int, int] = (-1, 0)
+RIGHT: Tuple[int, int] = (1, 0)
+
+# Вариации поворотов
+DIRECTIONS: Dict[Tuple[int, Tuple[int, int]], Tuple[int, int]] = {
+    (pygame.K_UP, UP): UP,
+    (pygame.K_UP, LEFT): UP,
+    (pygame.K_UP, RIGHT): UP,
+
+    (pygame.K_DOWN, DOWN): DOWN,
+    (pygame.K_DOWN, LEFT): DOWN,
+    (pygame.K_DOWN, RIGHT): DOWN,
+
+    (pygame.K_LEFT, LEFT): LEFT,
+    (pygame.K_LEFT, UP): LEFT,
+    (pygame.K_LEFT, DOWN): LEFT,
+
+    (pygame.K_RIGHT, RIGHT): RIGHT,
+    (pygame.K_RIGHT, UP): RIGHT,
+    (pygame.K_RIGHT, DOWN): RIGHT,
+}
 
 # Цвет фона - черный:
-BOARD_BACKGROUND_COLOR = (0, 0, 0)
+BOARD_BACKGROUND_COLOR: Tuple[int, int, int] = (0, 0, 0)
 
 # Цвет границы ячейки
-BORDER_COLOR = (0, 0, 0)
+BORDER_COLOR: Tuple[int, int, int] = (0, 0, 0)
 
 # Цвет яблока
-APPLE_COLOR = (255, 0, 0)
+APPLE_COLOR: Tuple[int, int, int] = (255, 0, 0)
 
 # Цвет змейки
-SNAKE_COLOR = (0, 255, 0)
+SNAKE_COLOR: Tuple[int, int, int] = (0, 255, 0)
 
 # Цвет камня
-ROCK_COLOR = (128, 128, 128)
+ROCK_COLOR: Tuple[int, int, int] = (128, 128, 128)
 
 # Цвет неправильного корма
-POISON_COLOR = (139, 0, 255)
+POISON_COLOR: Tuple[int, int, int] = (139, 0, 255)
 
 # Скорость движения змейки:
-SPEED = 20
+SPEED: int = 20
 
 # Настройка игрового окна:
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
@@ -46,8 +68,7 @@ clock = pygame.time.Clock()
 
 
 class GameObject:
-    """
-    Базовый класс для всех игровых объектов.
+    """Определяет все игровые объекты.
 
     Предоставляет общую функциональность для объектов на игровом поле,
     включая позиционирование и отрисовку.
@@ -57,13 +78,12 @@ class GameObject:
         body_color (tuple): Цвет объекта в формате RGB
     """
 
-    def __init__(self) -> None:
-        self.position = ((SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2))
-        self.body_color = None
+    def __init__(self, body_color=None) -> None:
+        self.position: Tuple[int, int] = CENTER_POSITION
+        self.body_color: Tuple[int, int, int] = body_color
 
-    def draw(self):
-        """
-        Метод для отрисовки объекта на экране.
+    def draw(self) -> None:
+        """Отрисовывает объект на экране.
 
         Рисует квадрат с заливкой основным цветом и границей.
         Может быть переопределен в дочерних классах
@@ -72,38 +92,49 @@ class GameObject:
         pygame.draw.rect(screen, self.body_color, rect)
         pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
-    def randomize_position(self):
-        """
-        Метод установки случайного положения объекта на экране.
-
-        Подбирает случайные координаты для положения объекта на экране.
-        Может быть переопределен в дочерних классах
-        """
-        self.position = (
-            randint(0, GRID_WIDTH - 1) * GRID_SIZE,
-            randint(0, GRID_HEIGHT - 1) * GRID_SIZE
-        )
-
 
 class Apple(GameObject):
-    """
-    Класс, представляющий яблоко в игре.
+    """Яблоко в игре.
 
-    Яблоко является съедобным объектом, который увеличивает длину змейки
+    Съедобный объект, который увеличивает длину змейки
     при столкновении. Появляется в случайных позициях на игровом поле.
 
     Attributes:
         body_color (tuple): Цвет яблока (красный по умолчанию)
     """
 
-    def __init__(self):
-        super().__init__()
-        self.body_color = APPLE_COLOR
+    def __init__(
+            self,
+            body_color: Tuple[int, int, int] = APPLE_COLOR,
+            occupied: Optional[List[Tuple[int, int]]] = None
+    ) -> None:
+        super().__init__(body_color)
+        self.randomize_position(occupied)
+
+    def randomize_position(
+            self,
+            occupied: Optional[List[Tuple[int, int]]] = None
+    ) -> None:
+        """Устанавливает случайное положение яблока на экране.
+
+        Подбирает случайные координаты для положения яблока на экране.
+        Гарантирует, что яблоко не появится на занятых позициях.
+        """
+        if occupied is None:
+            occupied = [CENTER_POSITION]
+
+        while True:
+            new_position = (
+                randint(0, GRID_WIDTH - 1) * GRID_SIZE,
+                randint(0, GRID_HEIGHT - 1) * GRID_SIZE
+            )
+            if new_position not in occupied:
+                self.position = new_position
+                break
 
 
 class Snake(GameObject):
-    """
-    Класс, представляющий змейку в игре.
+    """Змейка в игре.
 
     Управляется игроком с помощью клавиш стрелок. Растет при поедании яблок
     и завершает игру при столкновении с самой собой.
@@ -112,75 +143,81 @@ class Snake(GameObject):
         length (int): Текущая длина змейки
         positions (list): Список координат всех сегментов змейки
         direction (tuple): Текущее направление движения
-        next_direction (tuple): Следующее направление движения (буферизация)
         body_color (tuple): Цвет змейки (зеленый по умолчанию)
         last (tuple): Координаты последнего удаленного сегмента
     """
 
-    def __init__(self):
-        super().__init__()
-        self.length = 1
-        self.positions = [((SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2))]
+    def __init__(self, body_color: Tuple[int, int, int] = SNAKE_COLOR) -> None:
+        super().__init__(body_color)
+        self.length: int
+        self.positions: List[Tuple[int, int]]
+        self.direction: Tuple[int, int]
+        self.last: List[Tuple[int, int]]
+        self.reset()
+        self.positions = [CENTER_POSITION]
         self.direction = RIGHT
-        self.next_direction = None
-        self.body_color = SNAKE_COLOR
-        self.last = None
+        self.last = []
 
-    def update_direction(self):
-        """
-        Обновляет направление движения змейки на основе буферизованного ввода.
+    def update_direction(
+            self,
+            new_direction: Optional[Tuple[int, int]] = None
+    ) -> None:
+        """Обновляет направление движения змейки.
 
-        Если было задано следующее направление (next_direction), применяет его
-        и очищает.
+        Принимает новое направление и применяет его, если оно допустимо.
         """
-        if self.next_direction:
-            self.direction = self.next_direction
-            self.next_direction = None
+        if new_direction:
+            self.direction = new_direction
 
-    def move(self):
-        """
-        Перемещает змейку в текущем направлении.
+    def move(self) -> None:
+        """Перемещает змейку в текущем направлении.
 
         Вычисляет новую позицию головы, добавляет её в начало списка позиций
         Удаляет лишние сегменты в соответствии с текущей длиной змейки.
         """
-        head_x, head_y = self.positions[0]
+        head_x, head_y = self.get_head_position()
         dir_x, dir_y = self.direction
         new_x = (head_x + dir_x * GRID_SIZE) % SCREEN_WIDTH
         new_y = (head_y + dir_y * GRID_SIZE) % SCREEN_HEIGHT
         self.positions.insert(0, (new_x, new_y))
 
+        self.last = []
         while len(self.positions) > self.length:
-            self.last = self.positions.pop()
+            self.last.append(self.positions.pop())
 
-    def draw(self):
-        """
-        Отрисовывает змейку на игровом поле.
+    def draw(self) -> None:
+        """Отрисовывает змейку на игровом поле.
 
         Рисует все сегменты змейки с заливкой и границей,
         а также затирает последний удаленный сегмент.
         """
         for position in self.positions[:-1]:
             rect = (pygame.Rect(position, (GRID_SIZE, GRID_SIZE)))
-            pygame.draw.rect(screen, self.body_color, rect)
+            if self.body_color is not None:
+                pygame.draw.rect(screen, self.body_color, rect)
             pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
-        # Отрисовка головы змейки
-        head_rect = pygame.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
-        pygame.draw.rect(screen, self.body_color, head_rect)
+        head_rect = pygame.Rect(
+            self.get_head_position(), (GRID_SIZE, GRID_SIZE)
+        )
+        if self.body_color is not None:
+            pygame.draw.rect(screen, self.body_color, head_rect)
         pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
 
-        # Затирание последнего сегмента
         if self.last:
-            last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
-            pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
+            for pos in self.last:
+                pygame.draw.rect(
+                    screen,
+                    BOARD_BACKGROUND_COLOR,
+                    pygame.Rect(pos, (GRID_SIZE, GRID_SIZE))
+                )
 
-    def change_length(self, delta) -> None:
+    def change_length(self, delta: int) -> None:
         """Изменяет длину змейки на указанное значение."""
         self.length = max(1, self.length + delta)
 
-    def reset(self):
-        """Метод сброса змейки в случайную начальную позицию"""
+    def reset(self) -> None:
+        """Сбрасывает змейку в случайную начальную позицию"""
         self.length = 1
 
         self.positions = [(
@@ -188,28 +225,23 @@ class Snake(GameObject):
             randint(0, GRID_HEIGHT - 1) * GRID_SIZE,
         )]
         self.direction = RIGHT
-        self.next_direction = None
 
-    @property
-    def get_head_position(self):
-        """Метод получения позиции головы змейки"""
+    def get_head_position(self) -> Tuple[int, int]:
+        """Возвращает позицию головы змейки"""
         return self.positions[0]
 
-    def get_collision(self, obj=None) -> bool:
+    def get_collision(self, obj: Optional['GameObject'] = None) -> bool:
         """Проверяет столкновение змейки с объектом или самой собой."""
         if obj:
-            # Проверка столкновения с объектом
-            return self.get_head_position == obj.position
+            return self.get_head_position() == obj.position
         else:
-            # Проверка столкновения с самой собой
-            return self.get_head_position in self.positions[1:]
+            return self.get_head_position() in self.positions[1:]
 
 
 class Rock(GameObject):
-    """
-    Класс, представляющий камень в игре.
+    """Камень в игре.
 
-    Является препятствием размером в одну ячейку.
+    Препятствие размером в одну ячейку.
     При столкновении с камнем змейка принимает исходное состояние.
     Появляется в случайных позициях на игровом поле
 
@@ -217,16 +249,21 @@ class Rock(GameObject):
         body_color (tuple): Цвет яблока (красный по умолчанию)
     """
 
-    def __init__(self):
-        super().__init__()
-        self.body_color = ROCK_COLOR
+    def __init__(
+            self,
+            body_color: Tuple[int, int, int] = ROCK_COLOR
+    ) -> None:
+        super().__init__(body_color)
+        self.position: Tuple[int, int] = (
+            randint(0, GRID_WIDTH - 1) * GRID_SIZE,
+            randint(0, GRID_HEIGHT - 1) * GRID_SIZE
+        )
 
 
 class Poison(GameObject):
-    """
-    Класс, представляющий несъедобный корм в игре.
+    """Несъедобный корм в игре.
 
-    Является препятствием в виде треугольника, занимает одну ячейку.
+    Препятствие в виде треугольника, занимает одну ячейку.
     При столкновении с таким кормом змейка уменьшается на один сегмент.
     Появляется в случайных позициях на игровом поле
 
@@ -234,11 +271,17 @@ class Poison(GameObject):
         body_color (tuple): Цвет корма (фиолетовый по умолчанию)
     """
 
-    def __init__(self):
-        super().__init__()
-        self.body_color = POISON_COLOR
+    def __init__(
+            self,
+            body_color: Tuple[int, int, int] = POISON_COLOR
+    ) -> None:
+        super().__init__(body_color)
+        self.position: Tuple[int, int] = (
+            randint(0, GRID_WIDTH - 1) * GRID_SIZE,
+            randint(0, GRID_HEIGHT - 1) * GRID_SIZE
+        )
 
-    def draw(self):
+    def draw(self) -> None:
         """Отрисовывает несъедобный корм на игровом поле."""
         x, y = self.position
         points = [
@@ -246,63 +289,57 @@ class Poison(GameObject):
             (x, y + GRID_SIZE),
             (x + GRID_SIZE, y + GRID_SIZE)
         ]
-        pygame.draw.polygon(screen, self.body_color, points)
+        if self.body_color is not None:
+            pygame.draw.polygon(screen, self.body_color, points)
         pygame.draw.polygon(screen, BORDER_COLOR, points, 1)
 
 
-def handle_keys(game_object) -> None:
+def handle_keys(game_object: 'Snake') -> Optional[Tuple[int, int]]:
     """Функция обработки действий пользователя"""
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             raise SystemExit
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP and game_object.direction != DOWN:
-                game_object.next_direction = UP
-            elif event.key == pygame.K_DOWN and game_object.direction != UP:
-                game_object.next_direction = DOWN
-            elif event.key == pygame.K_LEFT and game_object.direction != RIGHT:
-                game_object.next_direction = LEFT
-            elif event.key == pygame.K_RIGHT and game_object.direction != LEFT:
-                game_object.next_direction = RIGHT
+
+        if event.type == pygame.KEYDOWN:
+            new_direction = DIRECTIONS.get((event.key, game_object.direction))
+            if new_direction is not None:
+                return new_direction
+    return None
 
 
-def main():
-    """Функция запуска игры"""
+def main() -> None:
+    """Запускает игру"""
     pygame.init()
 
     apple = Apple()
     snake = Snake()
     rock = Rock()
     poison = Poison()
-    apple.randomize_position()
-    rock.randomize_position()
-    poison.randomize_position()
+    screen.fill(BOARD_BACKGROUND_COLOR)
+    apple.randomize_position(snake.positions)
 
     while True:
         clock.tick(SPEED)
 
-        handle_keys(snake)
-        snake.update_direction()
+        new_direction = handle_keys(snake)
+        if new_direction is not None:
+            snake.update_direction(new_direction)
+
         snake.move()
 
-        # Проверка столкновения с яблоком
         if snake.get_collision(apple):
             snake.change_length(1)
-            apple.randomize_position()
+            apple.randomize_position(snake.positions)
 
-        # Проверка столкновения с ядом
         if snake.get_collision(poison):
             snake.change_length(-1)
-            poison.randomize_position()
 
-        # Проверка столкновения с самой собой
         if snake.get_collision() or snake.get_collision(rock):
+            screen.fill(BOARD_BACKGROUND_COLOR)
             snake.reset()
-            apple.randomize_position()
-            rock.randomize_position()
+            apple.randomize_position(snake.positions)
 
-        screen.fill(BOARD_BACKGROUND_COLOR)
         apple.draw()
         snake.draw()
         rock.draw()
