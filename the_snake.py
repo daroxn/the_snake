@@ -147,14 +147,13 @@ class Snake(GameObject):
         last (tuple): Координаты последнего удаленного сегмента
     """
 
-    length: int
-    positions: List[Tuple[int, int]]
-    direction: Tuple[int, int]
-    next_direction: Optional[Tuple[int, int]]
-    last: List[Tuple[int, int]]
-
     def __init__(self, body_color: Tuple[int, int, int] = SNAKE_COLOR) -> None:
         super().__init__(body_color)
+        self.length: int
+        self.positions: List[Tuple[int, int]]
+        self.direction: Tuple[int, int]
+        self.next_direction: Optional[Tuple[int, int]]
+        self.last: List[Tuple[int, int]]
         self.reset()
 
     def update_direction(self) -> None:
